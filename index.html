@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Mi Primer Juego de Pong!</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            border: 4px solid #fff;
+            background-color: #000;
+            box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.2);
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="pongCanvas" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("pongCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Raqueta del Jugador (Izquierda)
+        const player = { x: 10, y: 150, w: 15, h: 80, score: 0, color: "#00ffcc" };
+        // Raqueta de la Computadora (Derecha)
+        const computer = { x: 775, y: 150, w: 15, h: 80, score: 0, color: "#ff007f" };
+        // La Pelota
+        const ball = { x: 400, y: 200, radius: 10, speed: 5, vX: 5, vY: 5, color: "#fff" };
+
+        // Controlar la raqueta con el movimiento del dedo/mouse
+        canvas.addEventListener("mousemove", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            player.y = e.clientY - rect.top - player.h / 2;
+        });
+        canvas.addEventListener("touchmove", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let touch = e.touches[0];
+            player.y = touch.clientY - rect.top - player.h / 2;
+            e.preventDefault();
+        }, { passive: false });
+
+        function drawRect(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, w, h);
+        }
+
+        function drawCircle(x, y, r, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2, false);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawText(text, x, y, color) {
+            ctx.fillStyle = color;
+            ctx.font = "45px Arial";
+            ctx.fillText(text, x, y);
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.vX = -ball.vX;
+            ball.speed = 5;
+        }
+
+        function collision(b, p) {
+            p.top = p.y;
+            p.bottom = p.y + p.h;
+            p.left = p.x;
+            p.right = p.x + p.w;
+
+            b.top = b.y - b.radius;
+            b.bottom = b.y + b.radius;
+            b.left = b.x - b.radius;
+            b.right = b.x + b.radius;
+
+            return b.right > p.left && b.bottom > p.top && b.left < p.right && b.top < p.bottom;
+        }
+
+        function update() {
+            // Movimiento de la pelota
+            ball.x += ball.vX;
+            ball.y += ball.vY;
+
+            // Inteligencia artificial simple para la raqueta enemiga
+            computer.y += (ball.y - (computer.y + computer.h / 2)) * 0.08;
+
+            // Rebotar en techo y suelo
+            if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+                ball.vY = -ball.vY;
+            }
+
+            // Verificar qué raqueta golpea la pelota
+            let playerTarget = (ball.x < canvas.width / 2) ? player : computer;
+
+            if (collision(ball, playerTarget)) {
+                // Cambiar dirección y aumentar velocidad poco a poco
+                ball.vX = -ball.vX;
+                ball.speed += 0.5;
+            }
+
+            // Puntos y reinicio
+            if (ball.x - ball.radius < 0) {
+                computer.score++;
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width) {
+                player.score++;
+                resetBall();
+            }
+        }
+
+        function render() {
+            // Limpiar pantalla
+            drawRect(0, 0, canvas.width, canvas.height, "#000");
+
+            // Dibujar marcador
+            drawText(player.score, canvas.width / 4, canvas.height / 5, "#fff");
+            drawText(computer.score, 3 * canvas.width / 4, canvas.height / 5, "#fff");
+
+            // Línea del centro
+            for (let i = 0; i <= canvas.height; i += 20) {
+                drawRect(canvas.width / 2 - 1, i, 2, 10, "#333");
+            }
+
+            // Dibujar raquetas y pelota
+            drawRect(player.x, player.y, player.w, player.h, player.color);
+            drawRect(computer.x, computer.y, computer.w, computer.h, computer.color);
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+        }
+
+        function game() {
+            update();
+            render();
+        }
+
+        // Ejecutar el bucle del juego a 50 fotogramas por segundo
+        setInterval(game, 1000 / 50);
+    </script>
+</body>
+</html>
